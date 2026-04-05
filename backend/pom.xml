@@ -8,11 +8,11 @@
         <version>4.0.3</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>uob.codecollective</groupId>
-    <artifactId>backend</artifactId>
+    <groupId>com.routemind</groupId>
+    <artifactId>routemind-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>backend</name>
-    <description>backend</description>
+    <name>RouteMind Backend</name>
+    <description>Intelligent pedestrian route planner</description>
     <url/>
     <licenses>
         <license/>
