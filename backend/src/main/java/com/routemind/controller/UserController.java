@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
-import com.routemind.controller.errors.NotFoundError;
+import com.routemind.config.JwtUtil;
+import com.routemind.dto.AuthRequest;
+import com.routemind.dto.AuthResponse;
 import com.routemind.entity.User;
 import com.routemind.service.UserService;
 
@@ -18,41 +18,26 @@ import com.routemind.service.UserService;
 public class UserController {
 
     private final UserService svc;
+    private final JwtUtil jwtUtil;
 
-    public UserController(UserService svc) { this.svc = svc; }
+    public UserController(UserService svc, JwtUtil jwtUtil) {
+        this.svc = svc;
+        this.jwtUtil = jwtUtil;
+    }
 
     @PostMapping("/new")
     @ResponseStatus(HttpStatus.CREATED)
-    public Long create(
-            HttpServletResponse response,
-            @RequestBody String username
-    ) {
-        User user =  svc.createIfNotPresent(username);
-        Long user_id = user.getUserId();
-
-        Cookie cookie = new Cookie("user_id", user_id.toString());
-        cookie.setAttribute("SameSite", "Lax");
-        cookie.setSecure(false);
-        cookie.setPath("/");
-        cookie.setHttpOnly(false);
-        response.addCookie(cookie);
-        return user_id;
+    public AuthResponse create(@RequestBody AuthRequest request) {
+        User user = svc.createUser(request.username(), request.password());
+        String token = jwtUtil.generateToken(user.getUserId(), user.getUsername());
+        return new AuthResponse(user.getUserId(), user.getUsername(), token);
     }
 
     @PostMapping("/login")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public Long login(
-            HttpServletResponse response,
-            @RequestBody String username
-    ) {
-        User user = svc.findByUsername(username);
-
-        Cookie cookie = new Cookie("user_id", user.getUserId().toString());
-        cookie.setAttribute("SameSite", "Lax");
-        cookie.setSecure(false);
-        cookie.setPath("/");
-        cookie.setHttpOnly(false);
-        response.addCookie(cookie);
-        return user.getUserId();
+    @ResponseStatus(HttpStatus.OK)
+    public AuthResponse login(@RequestBody AuthRequest request) {
+        User user = svc.authenticate(request.username(), request.password());
+        String token = jwtUtil.generateToken(user.getUserId(), user.getUsername());
+        return new AuthResponse(user.getUserId(), user.getUsername(), token);
     }
 }

@@ -31,7 +31,7 @@ class HazardsServiceTest {
     }
 
     private User makeUser(Long id, String name) {
-        User u = new User(name);
+        User u = new User(name, "pass");
         u.setUserId(id);
         return u;
     }

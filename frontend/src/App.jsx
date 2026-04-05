@@ -96,22 +96,35 @@ function App() {
   // Pending route load flag (for shared routes / saved routes)
   const [pendingRouteLoad, setPendingRouteLoad] = useState(false);
 
+  // Helper: get auth headers for API calls
+  const authHeaders = () => {
+    const token = localStorage.getItem("jwt_token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   // --- Auth handlers ---
   const handleLogin = async (e) => {
     e.preventDefault();
-    const username = new FormData(e.target).get("username").toString();
+    const formData = new FormData(e.target);
+    const username = formData.get("username").toString();
+    const password = formData.get("password").toString();
     const endpoint = e.nativeEvent.submitter.getAttribute("formaction") === "signup" ? "new" : "login";
     try {
-      const response = await fetch(`/api/users/${endpoint}`, { method: "POST", body: username });
+      const response = await fetch(`/api/users/${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
       if (!response.ok) {
-        alert(endpoint === "login" ? "User not found. Try signing up first." : "Signup failed. Username may already exist.");
+        alert(endpoint === "login" ? "Invalid username or password." : "Signup failed. Username may already exist.");
         return;
       }
-      let userid = await response.json();
-      localStorage.setItem("user_id", userid);
-      localStorage.setItem("userName", username);
+      const data = await response.json();
+      localStorage.setItem("jwt_token", data.token);
+      localStorage.setItem("user_id", data.userId);
+      localStorage.setItem("userName", data.username);
       localStorage.setItem("isLoggedIn", "true");
-      setUserName(username);
+      setUserName(data.username);
       setIsLoggedIn(true);
       setIsLoginOpen(false);
     } catch (err) {
@@ -121,6 +134,8 @@ function App() {
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    localStorage.removeItem("jwt_token");
+    localStorage.removeItem("user_id");
     localStorage.removeItem("userName");
     localStorage.removeItem("isLoggedIn");
   };
@@ -137,7 +152,7 @@ function App() {
 
   const fetchSavedRoutes = async () => {
     try {
-      const res = await fetch("/api/saved-routes/", { credentials: "include" });
+      const res = await fetch("/api/saved-routes/", { headers: authHeaders() });
       if (res.ok) setSavedRoutes(await res.json());
     } catch (err) {
       console.error("Failed to fetch saved routes:", err);
@@ -215,8 +230,8 @@ function App() {
   // --- Hazard handlers ---
   const reportHazard = async (data) => {
     const response = await fetch("/api/hazards/new", {
-      method: "POST", credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify(data)
     });
     if (!response.ok) throw new Error(`Failed to report hazard, status: ${response.status}`);
@@ -237,7 +252,7 @@ function App() {
 
   const handleUpvoteHazard = async (hazardId) => {
     try {
-      const res = await fetch(`/api/hazards/upvote/${hazardId}`, { method: "PATCH", credentials: "include" });
+      const res = await fetch(`/api/hazards/upvote/${hazardId}`, { method: "PATCH", headers: authHeaders() });
       if (res.ok) {
         if (startPos) fetchNearbyHazards(startPos[0], startPos[1]);
         if (destination) fetchNearbyHazards(destination[0], destination[1]);
@@ -266,8 +281,8 @@ function App() {
     if (!isLoggedIn) { alert("Please log in to save routes."); return; }
     try {
       const res = await fetch("/api/saved-routes/", {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           routeName: `Route to ${destName.split(",")[0]}`,
           start: { lat: startPos[0], lon: startPos[1] },

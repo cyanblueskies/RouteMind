@@ -32,7 +32,7 @@ class SavedRouteTest {
     @Test
     void userAssociation() {
         SavedRoute route = new SavedRoute();
-        User user = new User("alice");
+        User user = new User("alice", "pass");
         user.setUserId(1L);
         route.setUser(user);
 

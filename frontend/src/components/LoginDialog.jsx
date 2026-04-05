@@ -11,6 +11,10 @@ export default function LoginDialog({ open, onClose, onLogin }) {
             autoFocus name="username" label="Username"
             fullWidth required variant="outlined" sx={{ mt: 1 }}
           />
+          <TextField
+            name="password" label="Password" type="password"
+            fullWidth required variant="outlined" sx={{ mt: 2 }}
+          />
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button onClick={onClose}>Cancel</Button>

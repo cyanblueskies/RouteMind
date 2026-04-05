@@ -18,6 +18,7 @@ public class CorsConfig {
                     .allowedOrigins("http://localhost:5173", "http://localhost:5174") // Vite dev server
                     .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                     .allowedHeaders("*")
+                    .exposedHeaders("Authorization")
                     .allowCredentials(true);
             }
         };
