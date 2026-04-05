@@ -1,0 +1,28 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+*.log
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# GraphHopper
+routing-graph-cache/
+*.osm.pbf
+
+# Env
+.env
+.env.local
