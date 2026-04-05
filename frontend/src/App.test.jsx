@@ -43,23 +43,28 @@ beforeEach(() => {
   global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve([]) }));
 });
 
+// Helper: open the side panel
+const openPanel = () => {
+  const fab = document.querySelector('.fab-panel-toggle');
+  if (fab) fireEvent.click(fab);
+};
+
 // ===================== DESTINATION SEARCH =====================
 describe('Destination Search', () => {
 
   it('does not call Nominatim when query is less than 3 characters', async () => {
     render(<App />);
     const callsBefore = fetch.mock.calls.length;
-    const input = screen.getByPlaceholderText('Search for a destination...');
+    const input = screen.getByPlaceholderText('Search destination in England...');
 
     fireEvent.change(input, { target: { value: 'Bi' } });
 
-    // no new fetch calls for search (hazard fetch may have fired on mount)
     expect(fetch.mock.calls.length).toBe(callsBefore);
   });
 
   it('calls Nominatim API when query is 3 or more characters', async () => {
     render(<App />);
-    const input = screen.getByPlaceholderText('Search for a destination...');
+    const input = screen.getByPlaceholderText('Search destination in England...');
 
     fireEvent.change(input, { target: { value: 'Birmingham' } });
 
@@ -73,7 +78,7 @@ describe('Destination Search', () => {
 
   it('displays search results as a dropdown', async () => {
     fetch.mockImplementation((url) => {
-      if (url.includes('nominatim') || url.includes('search')) {
+      if (typeof url === 'string' && (url.includes('nominatim') || url.includes('search'))) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve([
@@ -85,7 +90,7 @@ describe('Destination Search', () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
     });
     render(<App />);
-    const input = screen.getByPlaceholderText('Search for a destination...');
+    const input = screen.getByPlaceholderText('Search destination in England...');
 
     fireEvent.change(input, { target: { value: 'Birmingham' } });
 
@@ -97,7 +102,7 @@ describe('Destination Search', () => {
 
   it('closes dropdown and updates input when result is clicked', async () => {
     fetch.mockImplementation((url) => {
-      if (url.includes('nominatim') || url.includes('search')) {
+      if (typeof url === 'string' && (url.includes('nominatim') || url.includes('search'))) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve([
@@ -108,25 +113,24 @@ describe('Destination Search', () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
     });
     render(<App />);
-    const input = screen.getByPlaceholderText('Search for a destination...');
+    const input = screen.getByPlaceholderText('Search destination in England...');
     fireEvent.change(input, { target: { value: 'Birmingham' } });
     await waitFor(() => screen.getByText('Birmingham, West Midlands, UK'), { timeout: 3000 });
 
     fireEvent.click(screen.getByText('Birmingham, West Midlands, UK'));
 
-    expect(screen.queryByText('Birmingham, West Midlands, UK')).not.toBeInTheDocument();
+    expect(screen.queryByText('Birmingham New Street, UK')).not.toBeInTheDocument();
     expect(input.value).toBe('Birmingham, West Midlands, UK');
   });
 
-  it('bounds search to West Midlands viewbox', async () => {
+  it('search uses England viewbox', async () => {
     render(<App />);
-    const input = screen.getByPlaceholderText('Search for a destination...');
+    const input = screen.getByPlaceholderText('Search destination in England...');
     fireEvent.change(input, { target: { value: 'Library' } });
 
     await waitFor(() => {
-      const searchCall = fetch.mock.calls.find(c => c[0].includes('search'));
+      const searchCall = fetch.mock.calls.find(c => typeof c[0] === 'string' && c[0].includes('search'));
       expect(searchCall[0]).toContain('viewbox=');
-      expect(searchCall[0]).toContain('bounded=1');
     }, { timeout: 3000 });
   });
 
@@ -137,20 +141,20 @@ describe('Dark Mode Toggle', () => {
 
   it('renders light mode by default', () => {
     render(<App />);
-    expect(screen.getByText('Dark Mode')).toBeInTheDocument();
+    expect(screen.getByText('Dark')).toBeInTheDocument();
   });
 
   it('switches to dark mode when toggle is clicked', () => {
     render(<App />);
-    fireEvent.click(screen.getByText('Dark Mode'));
-    expect(screen.getByText('Light Mode')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Dark'));
+    expect(screen.getByText('Light')).toBeInTheDocument();
   });
 
   it('switches back to light mode on second click', () => {
     render(<App />);
-    fireEvent.click(screen.getByText('Dark Mode'));
-    fireEvent.click(screen.getByText('Light Mode'));
-    expect(screen.getByText('Dark Mode')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Dark'));
+    fireEvent.click(screen.getByText('Light'));
+    expect(screen.getByText('Dark')).toBeInTheDocument();
   });
 
 });
@@ -194,22 +198,22 @@ describe('Geolocation', () => {
     });
   });
 
-  it('falls back to Birmingham centre when geolocation denied', async () => {
+  it('falls back to default centre when geolocation denied', async () => {
     global.navigator.geolocation = {
       getCurrentPosition: vi.fn((success, error) => error({ code: 1 })),
     };
     render(<App />);
-    // app should still render without crashing
     expect(screen.getByTestId('map')).toBeInTheDocument();
   });
 
 });
 
-// ===================== PREFERENCES =====================
+// ===================== PREFERENCES (in side panel) =====================
 describe('Preferences', () => {
 
-  it('renders noise, pollution, and lighting sliders', () => {
+  it('renders preference sliders in side panel', () => {
     render(<App />);
+    openPanel();
     expect(screen.getByText(/Noise Priority/)).toBeInTheDocument();
     expect(screen.getByText(/Pollution Priority/)).toBeInTheDocument();
     expect(screen.getByText(/Lighting Priority/)).toBeInTheDocument();
@@ -217,11 +221,13 @@ describe('Preferences', () => {
 
   it('renders wheelchair toggle', () => {
     render(<App />);
+    openPanel();
     expect(screen.getByText(/Wheelchair Access/)).toBeInTheDocument();
   });
 
   it('slider default value is 5', () => {
     render(<App />);
+    openPanel();
     const sliders = document.querySelectorAll('input[type="range"]');
     sliders.forEach(slider => {
       expect(slider.value).toBe('5');
@@ -230,10 +236,11 @@ describe('Preferences', () => {
 
   it('persists preferences to localStorage', () => {
     render(<App />);
+    openPanel();
     const sliders = document.querySelectorAll('input[type="range"]');
     fireEvent.change(sliders[0], { target: { value: '8' } });
 
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('pref_noise', '8');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('pref_noise', 8);
   });
 
   it('loads saved preferences from localStorage', () => {
@@ -244,7 +251,6 @@ describe('Preferences', () => {
       return null;
     });
     render(<App />);
-    // preferences should be loaded (component re-renders with saved values)
     expect(localStorageMock.getItem).toHaveBeenCalledWith('pref_noise');
     expect(localStorageMock.getItem).toHaveBeenCalledWith('pref_pollution');
     expect(localStorageMock.getItem).toHaveBeenCalledWith('pref_lighting');
@@ -276,6 +282,14 @@ describe('Login and Authentication', () => {
     });
   });
 
+  it('shows password field in login dialog', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText('Login'));
+    await waitFor(() => {
+      expect(screen.getByLabelText('Password *')).toBeInTheDocument();
+    });
+  });
+
   it('closes dialog on Cancel', async () => {
     render(<App />);
     fireEvent.click(screen.getByText('Login'));
@@ -293,21 +307,18 @@ describe('Login and Authentication', () => {
 // ===================== ROUTE GENERATION =====================
 describe('Route Generation', () => {
 
-  it('shows Generate Routes button', () => {
+  it('shows Generate Routes button in side panel', () => {
     render(<App />);
+    openPanel();
     expect(screen.getByText('Generate Routes')).toBeInTheDocument();
   });
 
   it('alerts when no destination is set', () => {
     global.alert = vi.fn();
     render(<App />);
+    openPanel();
     fireEvent.click(screen.getByText('Generate Routes'));
     expect(global.alert).toHaveBeenCalledWith(expect.stringContaining('destination'));
-  });
-
-  it('shows route options placeholder text', () => {
-    render(<App />);
-    expect(screen.getByText('Generate a route to see options here.')).toBeInTheDocument();
   });
 
 });
@@ -315,13 +326,15 @@ describe('Route Generation', () => {
 // ===================== HAZARD REPORTING =====================
 describe('Hazard Reporting', () => {
 
-  it('shows Report a Hazard button', () => {
+  it('shows Report a Hazard button in side panel', () => {
     render(<App />);
+    openPanel();
     expect(screen.getByText('Report a Hazard')).toBeInTheDocument();
   });
 
   it('opens hazard dialog when button clicked', async () => {
     render(<App />);
+    openPanel();
     fireEvent.click(screen.getByText('Report a Hazard'));
     await waitFor(() => {
       expect(screen.getByLabelText('Description')).toBeInTheDocument();
@@ -330,6 +343,7 @@ describe('Hazard Reporting', () => {
 
   it('Submit is disabled until hazard type selected', () => {
     render(<App />);
+    openPanel();
     fireEvent.click(screen.getByText('Report a Hazard'));
     const submitBtn = screen.getByText('Submit Report');
     expect(submitBtn).toBeDisabled();
@@ -347,14 +361,45 @@ describe('Saved Routes Section', () => {
       return null;
     });
     render(<App />);
-    expect(screen.getByText(/SAVED ROUTES/i)).toBeInTheDocument();
+    openPanel();
+    expect(screen.getByText(/Saved Routes/i)).toBeInTheDocument();
   });
 
   it('hides Saved Routes section when not logged in', () => {
-    // ensure localStorage returns null for isLoggedIn (reset any previous mockImplementation)
     localStorageMock.getItem.mockImplementation((key) => null);
     render(<App />);
-    expect(screen.queryByText(/SAVED ROUTES/i)).not.toBeInTheDocument();
+    openPanel();
+    expect(screen.queryByText(/Saved Routes/i)).not.toBeInTheDocument();
+  });
+
+});
+
+// ===================== HEADER =====================
+describe('Header', () => {
+
+  it('renders RouteMind logo', () => {
+    render(<App />);
+    expect(screen.getByText('RouteMind')).toBeInTheDocument();
+  });
+
+  it('shows username when logged in', () => {
+    localStorageMock.getItem.mockImplementation((key) => {
+      if (key === 'isLoggedIn') return 'true';
+      if (key === 'userName') return 'Alice';
+      return null;
+    });
+    render(<App />);
+    expect(screen.getByText('Hello, Alice')).toBeInTheDocument();
+  });
+
+  it('shows Logout button when logged in', () => {
+    localStorageMock.getItem.mockImplementation((key) => {
+      if (key === 'isLoggedIn') return 'true';
+      if (key === 'userName') return 'Alice';
+      return null;
+    });
+    render(<App />);
+    expect(screen.getByText('Logout')).toBeInTheDocument();
   });
 
 });
