@@ -1,0 +1,674 @@
+/* RouteMind — Google Maps-style layout */
+
+/* ===== App Shell ===== */
+.app-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-body {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ===== Header ===== */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 20px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+.app-header .logo {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+
+.app-header .header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-header .hello {
+  font-size: 14px;
+  font-weight: 400;
+  opacity: 0.9;
+  margin-right: 6px;
+}
+
+.header-btn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.header-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ===== Map (fullscreen behind everything) ===== */
+.map-container {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+/* ===== Floating Search Bar ===== */
+.search-bar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;
+  width: 420px;
+  max-width: calc(100% - 32px);
+}
+
+.search-bar .search-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  padding: 0 16px;
+  height: 48px;
+  transition: box-shadow 0.2s;
+}
+
+.search-bar .search-input-wrapper:focus-within {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.search-bar .search-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: #666;
+}
+
+.search-bar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  padding: 0 12px;
+  background: transparent;
+  color: #333;
+}
+
+.search-bar input::placeholder {
+  color: #999;
+}
+
+.search-bar .search-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #999;
+  font-size: 18px;
+}
+
+.search-bar .search-dropdown {
+  position: absolute;
+  top: 54px;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  max-height: 260px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+
+.search-bar .search-dropdown li {
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  transition: background 0.15s;
+}
+
+.search-bar .search-dropdown li:hover {
+  background: #f0f4f8;
+}
+
+.search-bar .search-status {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #888;
+}
+
+.search-bar .dest-label {
+  margin: 6px 0 0 16px;
+  font-size: 12px;
+  color: #666;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.8);
+}
+
+/* ===== FAB (panel toggle) ===== */
+.fab-panel-toggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 500;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: white;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: #333;
+}
+
+.fab-panel-toggle:hover {
+  background: #f5f5f5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* ===== Side Panel ===== */
+.side-panel {
+  position: absolute;
+  top: 0;
+  right: -400px;
+  width: 380px;
+  height: 100%;
+  z-index: 600;
+  background: white;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  transition: right 0.3s ease;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.side-panel-open {
+  right: 0;
+}
+
+.side-panel-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  padding: 4px;
+}
+
+.side-panel-close:hover {
+  color: #333;
+}
+
+.side-panel-content {
+  padding: 16px;
+  padding-top: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ===== Panel Sections ===== */
+.panel-section {
+  padding: 14px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.panel-section:last-child {
+  border-bottom: none;
+}
+
+.panel-title {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #888;
+  font-weight: 600;
+}
+
+/* ===== Preferences ===== */
+.preferences .slider-group {
+  margin-bottom: 14px;
+}
+
+.preferences .slider-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.preferences .slider-value {
+  color: #4caf50;
+  font-weight: 700;
+}
+
+.preferences .slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, #e0e0e0, #c8e6c9);
+  outline: none;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+
+.preferences .slider:hover {
+  opacity: 1;
+}
+
+.preferences .slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #4caf50;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.4);
+}
+
+.preferences .slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #4caf50;
+  cursor: pointer;
+  border: none;
+}
+
+.preferences .toggle-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.toggle-btn {
+  width: 50px;
+  height: 26px;
+  border-radius: 13px;
+  border: none;
+  background-color: #ccc;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.thumb {
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-btn.toggled {
+  background-color: #4caf50;
+}
+
+.toggle-btn.toggled .thumb {
+  transform: translateX(24px);
+}
+
+/* ===== Generate Button ===== */
+.btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-generate {
+  width: 100%;
+  background: rgb(6, 171, 74);
+  color: white;
+  font-size: 15px;
+  padding: 12px;
+}
+
+.btn-generate:hover:not(:disabled) {
+  background: rgb(3, 136, 87);
+  transform: scale(1.02);
+}
+
+.btn-generate:disabled {
+  background: #999;
+  cursor: not-allowed;
+}
+
+/* ===== Route Cards ===== */
+.route-card {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.route-card:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.route-card.selected {
+  border: 2px solid #4caf50;
+  box-shadow: 0 2px 10px rgba(76, 175, 80, 0.25);
+}
+
+.route-card .route-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.route-card .route-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.route-card .route-meta {
+  font-size: 12px;
+  color: #888;
+}
+
+.route-card .overall-score {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.route-card .score-green { color: #4caf50; }
+.route-card .score-orange { color: #ff9800; }
+.route-card .score-red { color: #f44336; }
+
+.route-card .explanation {
+  font-size: 12px;
+  color: #777;
+  font-style: italic;
+  line-height: 1.4;
+  margin: 6px 0 10px;
+}
+
+.route-card .actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.btn-primary {
+  background: rgb(6, 171, 74);
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: rgb(3, 136, 87);
+}
+
+.btn-outline {
+  background: transparent;
+  color: #666;
+  border: 1px solid #ccc;
+}
+
+.btn-outline:hover {
+  background: #f5f5f5;
+}
+
+/* ===== Score Bar ===== */
+.score-bar {
+  margin-bottom: 6px;
+}
+
+.score-bar .score-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.score-bar .score-bar-track {
+  background: #e0e0e0;
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.score-bar .score-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+/* ===== Saved Routes ===== */
+.saved-routes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.chevron {
+  font-size: 12px;
+  color: #888;
+}
+
+.saved-routes-list {
+  margin-top: 10px;
+}
+
+.saved-route-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  background: #fafafa;
+}
+
+.saved-route-name {
+  font-size: 13px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-muted {
+  color: #aaa;
+  font-size: 13px;
+}
+
+/* ===== Hazard Button ===== */
+.btn-hazard {
+  width: 100%;
+  background: #d32f2f;
+  color: white;
+  padding: 12px;
+  font-size: 14px;
+}
+
+.btn-hazard:hover {
+  background: #b71c1c;
+}
+
+/* ===== Hazard Popup on Map ===== */
+.hazard-popup {
+  min-width: 160px;
+}
+
+.hazard-popup strong {
+  font-size: 13px;
+}
+
+.hazard-popup p {
+  font-size: 12px;
+  color: #333;
+  margin: 4px 0;
+}
+
+.hazard-popup .hazard-meta {
+  font-size: 11px;
+  color: #888;
+}
+
+.btn-hazard-confirm {
+  margin-top: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #d32f2f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-hazard-confirm:hover {
+  background: #b71c1c;
+}
+
+/* ===== Dark Mode ===== */
+.dark .side-panel {
+  background: #1e1e1e;
+  color: #e0e0e0;
+}
+
+.dark .panel-title {
+  color: #aaa;
+}
+
+.dark .route-card {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+.dark .route-card.selected {
+  border-color: #4caf50;
+}
+
+.dark .route-card .route-name {
+  color: #e0e0e0;
+}
+
+.dark .route-card .route-meta,
+.dark .route-card .explanation {
+  color: #aaa;
+}
+
+.dark .saved-route-item {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+.dark .btn-outline {
+  color: #ccc;
+  border-color: #555;
+}
+
+.dark .search-bar .search-input-wrapper {
+  background: #2a2a2a;
+}
+
+.dark .search-bar input {
+  color: #e0e0e0;
+}
+
+.dark .search-bar .search-dropdown {
+  background: #2a2a2a;
+}
+
+.dark .search-bar .search-dropdown li {
+  color: #e0e0e0;
+}
+
+.dark .search-bar .search-dropdown li:hover {
+  background: #3a3a3a;
+}
+
+.dark .fab-panel-toggle {
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
+.dark .panel-section {
+  border-color: #333;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+  .search-bar {
+    width: calc(100% - 80px);
+    left: 16px;
+    transform: none;
+  }
+
+  .side-panel {
+    width: 100%;
+    right: -100%;
+  }
+
+  .fab-panel-toggle {
+    top: 12px;
+    right: 12px;
+    width: 42px;
+    height: 42px;
+    font-size: 18px;
+  }
+}
