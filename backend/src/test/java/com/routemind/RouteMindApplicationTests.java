@@ -24,38 +24,65 @@ class RouteMindApplicationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    /** Helper: sign up a user and return the JWT token */
+    private String signUpAndGetToken(String username) throws Exception {
+        String response = mockMvc.perform(
+            post("/api/users/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"" + username + "\",\"password\":\"testpass123\"}")
+        )
+        .andReturn().getResponse().getContentAsString();
+        return com.jayway.jsonpath.JsonPath.read(response, "$.token");
+    }
+
+    /** Helper: sign up and return userId as string */
+    private String signUpAndGetUserId(String username) throws Exception {
+        String response = mockMvc.perform(
+            post("/api/users/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"" + username + "\",\"password\":\"testpass123\"}")
+        )
+        .andReturn().getResponse().getContentAsString();
+        return com.jayway.jsonpath.JsonPath.read(response, "$.userId").toString();
+    }
+
     @Test
     void createUser() throws Exception {
         mockMvc.perform(
-            post("/api/users/new").contentType(MediaType.TEXT_PLAIN).content("testusercreate")
-    )
-        .andExpect(status().isCreated());
+            post("/api/users/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"testusercreate\",\"password\":\"testpass123\"}")
+        )
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.token").exists())
+        .andExpect(jsonPath("$.userId").exists())
+        .andExpect(jsonPath("$.username").value("testusercreate"));
     }
 
     @Test
     void loginUser() throws Exception {
+        // First sign up
         mockMvc.perform(
-            post("/api/users/new").contentType(MediaType.TEXT_PLAIN).content("login")
+            post("/api/users/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"loginuser\",\"password\":\"testpass123\"}")
         );
 
+        // Then login
         mockMvc.perform(
-            post("/api/users/login").contentType(MediaType.TEXT_PLAIN).content("login")
+            post("/api/users/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"loginuser\",\"password\":\"testpass123\"}")
         )
-        .andExpect(status().isAccepted());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.token").exists());
     }
 
     @Test
     void createHazard() throws Exception {
-        String testuseridcreate = 
-        mockMvc.perform(
-            post("/api/users/new").contentType(MediaType.TEXT_PLAIN).content("testuseridcreate")
-        )
-        .andExpect(status().isCreated())
-        .andReturn().getResponse().getContentAsString();
-    
+        String token = signUpAndGetToken("testuseridcreate");
 
-
-        String testhazardcreate = """
+        String hazardJson = """
         {
             "latitude": 51.5074,
             "longitude": -0.1278,
@@ -64,158 +91,137 @@ class RouteMindApplicationTests {
         """;
 
         mockMvc.perform(
-            post("/api/hazards/new").contentType(MediaType.APPLICATION_JSON).content(testhazardcreate).cookie(new jakarta.servlet.http.Cookie("user_id", testuseridcreate))
+            post("/api/hazards/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(hazardJson)
+                .header("Authorization", "Bearer " + token)
         )
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").exists());
     }
 
-
-   
     @Test
     void upvoteHazard() throws Exception {
-        String testuseridcreate = 
-        mockMvc.perform(
-            post("/api/users/new").contentType(MediaType.TEXT_PLAIN).content("testuseridupvote")
-        )
-        .andReturn().getResponse().getContentAsString();
+        String token1 = signUpAndGetToken("testuseridupvote");
 
-        String testhazardidcreate =
-        mockMvc.perform(
-            post("/api/hazards/new").contentType(MediaType.APPLICATION_JSON).content("""
-            {
-                "latitude": 51.5074,
-                "longitude": -0.1278,
-                "description": "Test hazard for upvote"
-            }
-            """).cookie(new jakarta.servlet.http.Cookie("user_id", testuseridcreate))
+        String hazardResponse = mockMvc.perform(
+            post("/api/hazards/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                {
+                    "latitude": 51.5074,
+                    "longitude": -0.1278,
+                    "description": "Test hazard for upvote"
+                }
+                """)
+                .header("Authorization", "Bearer " + token1)
         )
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.id").exists())
         .andReturn().getResponse().getContentAsString();
 
-        String hazardId = 
-        com.jayway.jsonpath.JsonPath.read(testhazardidcreate, "$.id").toString();
+        String hazardId = com.jayway.jsonpath.JsonPath.read(hazardResponse, "$.id").toString();
 
-        String upvoteUserId = 
-        mockMvc.perform(
-            post("/api/users/new").contentType(MediaType.TEXT_PLAIN).content("testuseridupvote2")
-        )
-        .andReturn().getResponse().getContentAsString();
+        // Different user upvotes
+        String token2 = signUpAndGetToken("testuseridupvote2");
 
         mockMvc.perform(
-            patch("/api/hazards/upvote/" + hazardId).cookie(new jakarta.servlet.http.Cookie("user_id", upvoteUserId))
+            patch("/api/hazards/upvote/" + hazardId)
+                .header("Authorization", "Bearer " + token2)
         )
         .andExpect(status().isOk());
     }
-
 
     @Test
     void getHazard() throws Exception {
-        String userId =
-        mockMvc.perform(
-            post("/api/users/new").contentType(MediaType.TEXT_PLAIN).content("testuseridget")
-        )
-        .andReturn().getResponse().getContentAsString();
+        String token = signUpAndGetToken("testuseridget");
 
-
-        String testhazardidcreate =
-        mockMvc.perform(
-            post("/api/hazards/new").contentType(MediaType.APPLICATION_JSON).content("""
-            {
-                "latitude": 51.5074,
-                "longitude": -0.1278,
-                "description": "Test hazard for get"
-            }
-            """).cookie(new jakarta.servlet.http.Cookie("user_id", userId))
+        String hazardResponse = mockMvc.perform(
+            post("/api/hazards/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                {
+                    "latitude": 51.5074,
+                    "longitude": -0.1278,
+                    "description": "Test hazard for get"
+                }
+                """)
+                .header("Authorization", "Bearer " + token)
         )
         .andExpect(status().isCreated())
         .andReturn().getResponse().getContentAsString();
 
-        String hazardId = com.jayway.jsonpath.JsonPath.read(testhazardidcreate, "$.id").toString();
+        String hazardId = com.jayway.jsonpath.JsonPath.read(hazardResponse, "$.id").toString();
+
         mockMvc.perform(
-            get("/api/hazards/get/" + hazardId).contentType(MediaType.TEXT_PLAIN)
+            get("/api/hazards/get/" + hazardId)
         )
         .andExpect(status().isOk());
     }
 
-
     @Test
     void deleteHazard() throws Exception {
-        String userId =
-        mockMvc.perform(
-            post("/api/users/new").contentType(MediaType.TEXT_PLAIN).content("testuseridhdelete")
-        )
-        .andReturn().getResponse().getContentAsString();
+        String token = signUpAndGetToken("testuseridhdelete");
 
-         String testhazardidcreate =
-        mockMvc.perform(
-            post("/api/hazards/new").contentType(MediaType.APPLICATION_JSON).content("""
-            {
-                "latitude": 51.5074,
-                "longitude": -0.1278,
-                "description": "Test hazard for delete"
-            }
-            """).cookie(new jakarta.servlet.http.Cookie("user_id", userId))
+        String hazardResponse = mockMvc.perform(
+            post("/api/hazards/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                {
+                    "latitude": 51.5074,
+                    "longitude": -0.1278,
+                    "description": "Test hazard for delete"
+                }
+                """)
+                .header("Authorization", "Bearer " + token)
         )
         .andExpect(status().isCreated())
         .andReturn().getResponse().getContentAsString();
 
-        String hazardId = com.jayway.jsonpath.JsonPath.read(testhazardidcreate, "$.id").toString();
+        String hazardId = com.jayway.jsonpath.JsonPath.read(hazardResponse, "$.id").toString();
 
         mockMvc.perform(
-            delete("/api/hazards/delete/" + hazardId).cookie(new jakarta.servlet.http.Cookie("user_id", userId))
+            delete("/api/hazards/delete/" + hazardId)
+                .header("Authorization", "Bearer " + token)
         )
         .andExpect(status().isOk());
     }
 
     @Test
     void getnearbyHazards() throws Exception {
-        String userId =
+        String token = signUpAndGetToken("testuseridnearby");
+
         mockMvc.perform(
-            post("/api/users/new").contentType(MediaType.TEXT_PLAIN).content("testuseridnearby")
+            post("/api/hazards/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                {
+                    "latitude": 51.5074,
+                    "longitude": -0.1278,
+                    "description": "Test hazard for nearby"
+                }
+                """)
+                .header("Authorization", "Bearer " + token)
         )
-        .andReturn().getResponse().getContentAsString();
-
-        String testhazardidcreate =
-        mockMvc.perform(
-            post("/api/hazards/new").contentType(MediaType.APPLICATION_JSON).content("""
-            {
-                "latitude": 51.5074,
-                "longitude": -0.1278,
-                "description": "Test hazard for nearby"
-            }
-            """).cookie(new jakarta.servlet.http.Cookie("user_id", userId))
-        )
-        .andExpect(status().isCreated())
-        .andReturn().getResponse().getContentAsString();
-
+        .andExpect(status().isCreated());
 
         mockMvc.perform(
-            get("/api/hazards/nearby").param("lat", "51.5074").param("long", "-0.1278").param("distance", "1000")
+            get("/api/hazards/nearby")
+                .param("lat", "51.5074")
+                .param("long", "-0.1278")
+                .param("distance", "1000")
         )
         .andExpect(status().isOk());
     }
 
     @Test
     void savedRoute() throws Exception {
-        String userId =
-        mockMvc.perform(
-            post("/api/users/new").contentType(MediaType.TEXT_PLAIN).content("testusersavedroute")
-        )
-        .andReturn().getResponse().getContentAsString();
+        String token = signUpAndGetToken("testusersavedroute");
 
         String testSavedRouteCreate = """
         {
             "routeName": "Test Route",
-            "start": {
-                "lat":  51.5074,
-                "lon": -0.1278
-            },
-            "dest": {
-                "lat": 51.5155,
-                "lon": -0.1420
-            }, 
+            "start": { "lat": 51.5074, "lon": -0.1278 },
+            "dest": { "lat": 51.5155, "lon": -0.1420 },
             "noiseWeight": 1,
             "pollutionWeight": 1,
             "lightingWeight": 1,
@@ -223,38 +229,36 @@ class RouteMindApplicationTests {
         }
         """;
 
-        
         String savedRoute = mockMvc.perform(
-            post("/api/saved-routes/").contentType(MediaType.APPLICATION_JSON).content(testSavedRouteCreate).cookie(new jakarta.servlet.http.Cookie("user_id", userId))
+            post("/api/saved-routes/")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(testSavedRouteCreate)
+                .header("Authorization", "Bearer " + token)
         )
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.routeId").exists())
         .andReturn().getResponse().getContentAsString();
-    
 
         mockMvc.perform(
-            get("/api/saved-routes/").cookie(new jakarta.servlet.http.Cookie("user_id", userId))
+            get("/api/saved-routes/")
+                .header("Authorization", "Bearer " + token)
         )
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].routeName").value("Test Route"));
 
         String routeId = com.jayway.jsonpath.JsonPath.read(savedRoute, "$.routeId").toString();
         mockMvc.perform(
-            delete("/api/saved-routes/" + routeId).cookie(new jakarta.servlet.http.Cookie("user_id", userId))
+            delete("/api/saved-routes/" + routeId)
+                .header("Authorization", "Bearer " + token)
         )
         .andExpect(status().isOk());
     }
 
-
     @Test
     void postUserPreference() throws Exception {
-        String userId = mockMvc.perform(
-            post("/api/users/new").contentType(MediaType.TEXT_PLAIN).content("testuserpreferencepost")
-        )
-        .andExpect(status().isCreated())
-        .andReturn().getResponse().getContentAsString();
+        String token = signUpAndGetToken("testuserpreferencepost");
 
-        String testPreferencepostCreate = """
+        String prefJson = """
         {
             "noiseWeight": 1,
             "lightingWeight": 2,
@@ -262,8 +266,12 @@ class RouteMindApplicationTests {
             "pollutionWeight": 4
         }
         """;
+
         mockMvc.perform(
-            post("/api/user/preference/save").contentType(MediaType.APPLICATION_JSON).content(testPreferencepostCreate).cookie(new jakarta.servlet.http.Cookie("user_id", userId))
+            post("/api/user/preference/save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(prefJson)
+                .header("Authorization", "Bearer " + token)
         )
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$").exists());
@@ -271,12 +279,13 @@ class RouteMindApplicationTests {
 
     @Test
     void getUserPreference() throws Exception {
-        String userId =
-        mockMvc.perform(
-            post("/api/users/new").contentType(MediaType.TEXT_PLAIN).content("testuserpreferenceget")
-        )
-        .andReturn().getResponse().getContentAsString();
-        String testperferencegetcreate = """
+        String token = signUpAndGetToken("testuserpreferenceget");
+        String userId = signUpAndGetUserId("testuserpreferenceget2");
+
+        // save preference first using token for this user
+        String token2 = signUpAndGetToken("testuserpreferenceget3");
+
+        String prefJson = """
         {
             "noiseWeight": 1,
             "lightingWeight": 2,
@@ -284,13 +293,33 @@ class RouteMindApplicationTests {
             "pollutionWeight": 4
         }
         """;
-        mockMvc.perform(
-            post("/api/user/preference/save").contentType(MediaType.APPLICATION_JSON).content(testperferencegetcreate).cookie(new jakarta.servlet.http.Cookie("user_id", userId))
-        )
-        .andExpect(status().isCreated())
-        .andExpect(jsonPath("$").exists());
 
-       mockMvc.perform(
-         get("/api/user/preference/" + userId)).andExpect(status().isAccepted());
+        mockMvc.perform(
+            post("/api/user/preference/save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(prefJson)
+                .header("Authorization", "Bearer " + token2)
+        )
+        .andExpect(status().isCreated());
+
+        // Get the userId from the token2 user to query preferences
+        String response = mockMvc.perform(
+            post("/api/users/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"testuserpreferenceget4\",\"password\":\"testpass123\"}")
+        ).andReturn().getResponse().getContentAsString();
+        String uid = com.jayway.jsonpath.JsonPath.read(response, "$.userId").toString();
+
+        // Save a preference for this user
+        mockMvc.perform(
+            post("/api/user/preference/save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(prefJson)
+                .header("Authorization", "Bearer " + com.jayway.jsonpath.JsonPath.read(response, "$.token").toString())
+        ).andExpect(status().isCreated());
+
+        mockMvc.perform(
+            get("/api/user/preference/" + uid)
+        ).andExpect(status().isAccepted());
     }
 }
