@@ -111,15 +111,7 @@ cd backend && ./mvnw test
 cd frontend && npx vitest run
 ```
 
-## Screenshots
 
-| Route Comparison | Hazard Reporting |
-|:---:|:---:|
-| ![routes](docs/screenshots/routes.png) | ![hazards](docs/screenshots/hazards.png) |
-
-| Dark Mode | Preferences |
-|:---:|:---:|
-| ![dark](docs/screenshots/dark-mode.png) | ![prefs](docs/screenshots/preferences.png) |
 
 ## License
 
