@@ -7,8 +7,8 @@
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>tranquilpath</name>
-  <url>http://maven.apache.org</url>
+  <name>RouteMind</name>
+  <url>https://github.com/cyanblueskies/RouteMind</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
