@@ -9,6 +9,7 @@ import com.graphhopper.config.Profile;
 import com.graphhopper.json.Statement;
 import com.graphhopper.util.CustomModel;
 
+import java.io.File;
 
 @Configuration
 public class GHConfig {
@@ -16,13 +17,26 @@ public class GHConfig {
     @Value("${router.enabled:true}")
     private boolean routerEnabled;
 
+    @Value("${router.osm-file:england-260405.osm.pbf}")
+    private String osmFile;
+
     @Bean(destroyMethod = "close")
     public GraphHopper graphHopper() {
         if (!routerEnabled) {
+            System.out.println("[RouteMind] Router disabled via config.");
             return null;
         }
+
+        File osm = new File(osmFile);
+        if (!osm.exists()) {
+            System.out.println("[RouteMind] OSM file not found: " + osm.getAbsolutePath());
+            System.out.println("[RouteMind] Router will be disabled. Download the file with:");
+            System.out.println("  wget https://download.geofabrik.de/europe/great-britain/england-latest.osm.pbf");
+            return null;
+        }
+
         GraphHopper hopper = new GraphHopper();
-        hopper.setOSMFile("england-latest.osm.pbf");
+        hopper.setOSMFile(osmFile);
         hopper.setGraphHopperLocation("target/routing-graph-cache");
         hopper.setEncodedValuesString("road_class,foot_access,surface,smoothness");
 
@@ -32,6 +46,7 @@ public class GHConfig {
         hopper.setProfiles(new Profile("foot").setCustomModel(model));
 
         hopper.importOrLoad();
+        System.out.println("[RouteMind] GraphHopper loaded successfully.");
         return hopper;
     }
 }
