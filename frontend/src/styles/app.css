@@ -651,12 +651,111 @@
   border-color: #333;
 }
 
+/* ===== Animations ===== */
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.side-panel-open {
+  animation: slideIn 0.3s ease forwards;
+}
+
+.search-bar .search-dropdown li {
+  animation: fadeIn 0.2s ease;
+}
+
+.route-card {
+  animation: fadeIn 0.3s ease;
+}
+
+.btn-generate:active:not(:disabled) {
+  animation: pulse 0.2s ease;
+}
+
+/* Loading spinner */
+.loading-dots::after {
+  content: '';
+  animation: dots 1.4s steps(4) infinite;
+}
+
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+/* Smooth transitions for interactive elements */
+.route-card,
+.saved-route-item,
+.header-btn,
+.btn,
+.toggle-btn {
+  transition: all 0.2s ease;
+}
+
+.header-btn:active {
+  transform: scale(0.95);
+}
+
+/* ===== Scrollbar Styling ===== */
+.side-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.side-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.side-panel::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.side-panel::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+.dark .side-panel::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 600px) {
+  .app-header {
+    padding: 0 12px;
+    height: 48px;
+  }
+
+  .app-header .logo {
+    font-size: 16px;
+  }
+
+  .header-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
   .search-bar {
-    width: calc(100% - 80px);
-    left: 16px;
+    width: calc(100% - 72px);
+    left: 12px;
+    top: 12px;
     transform: none;
+  }
+
+  .search-bar .search-input-wrapper {
+    height: 42px;
   }
 
   .side-panel {
@@ -670,5 +769,31 @@
     width: 42px;
     height: 42px;
     font-size: 18px;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .search-bar {
+    width: 340px;
+  }
+
+  .side-panel {
+    width: 320px;
+    right: -320px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .search-bar {
+    width: 500px;
+  }
+
+  .side-panel {
+    width: 420px;
+    right: -420px;
+  }
+
+  .side-panel-open {
+    right: 0;
   }
 }
